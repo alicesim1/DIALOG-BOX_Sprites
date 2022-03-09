@@ -13,53 +13,49 @@ static void inputHandler(u16,u16,u16);
 void main(){
 	
 	JOY_setEventHandler(&inputHandler);
-	
 	//----------------------------------------------
 	
-	PAL_setPalette(PAL2,dig_marco1.palette->data,CPU);
+	SPR_init();//necesario para diaologon(funciona por Sprites!)
 	
+	//VDP_drawText("Total:65536 bytes",20,1);
+	//memfreettxt();
 	
-	
-	SPR_init();
-	
-	Sprite* dig_temp[3];
-	dig_temp[0]=SPR_addSpriteEx(&dig_marco1,0,0,diag_ind,0,SPR_FLAG_AUTO_SPRITE_ALLOC | SPR_FLAG_AUTO_TILE_UPLOAD);
-	dig_temp[1]=SPR_addSpriteEx(&dig_marco2,0,0,diag_ind+1,0,SPR_FLAG_AUTO_SPRITE_ALLOC | SPR_FLAG_AUTO_TILE_UPLOAD);
-	dig_temp[2]=SPR_addSpriteEx(&dig_marco3,0,0,diag_ind+1+4,0,SPR_FLAG_AUTO_SPRITE_ALLOC | SPR_FLAG_AUTO_TILE_UPLOAD);
-	
-	SPR_update();//VOLCAMOS ACTUALIZACION Y PINTADO DE SPRITES
-	for(u8 i=0;i<3;i++)	SPR_releaseSprite(dig_temp[i]);//LIBERAMOS LOS SLTOS DE SPRITES
-	SPR_update();//BORRAMOS SPRITES(BORRA SLOTS, NO BORRA VRAM, NI DATOS SPRITES)
-	
-	VDP_drawText("Total:65536 bytes",20,1);
-
 	//--------------------------------------------------
 	gat=TRUE;
+
     while(1){//LOOP BASICO(NUNCA SE SALE!)
 		
 		if(!gat){
-			if(BUTTONS[6]){ gat=TRUE;
-				dialogo(0,0,4,6,0);
-			}
+			
 			if(BUTTONS[5]){ gat=TRUE;
-				dialogo(0,0,4,6,1);
+				strcpy(dialog_txt,"!Hola Mundo¡");
+				dialogo(24,156,8,1,1,1);
+			}
+			if(BUTTONS[6]){ gat=TRUE;
+				strcpy(dialog_txt,dialogos[0]);
+				dialogo(24,140,8,2,1,1);
 			}
 			if(BUTTONS[7]){ gat=TRUE;
-				dialogo(0,0,4,6,2);
+				strcpy(dialog_txt,dialogos[1]);
+				dialogo(0,0,4,6,1,1);
 			}
 			if(BUTTONS[8]){ gat=TRUE;
-				dialogo(0,0,4,6,3);
+				strcpy(dialog_txt,dialogos[3]);
+				dialogo(0,0,4,6,1,1);
 			}
 			
 		}else if(!BUTTONS[0]) gat=FALSE;
-		
-		sprintf(char_salida, "Free: %05u bytes", MEM_getFree());
-		VDP_drawText(char_salida, 20, 2);
-		sprintf(char_salida, "Used: %05u bytes", 65536 - MEM_getFree());
-		VDP_drawText(char_salida, 20, 3);
 	
 		SYS_doVBlankProcess(); // Renderizamos la pantalla
     }
+}
+
+
+void memfreettxt(){
+	/*sprintf(char_salida, "Free: %05u bytes", MEM_getFree());
+	VDP_drawText(char_salida, 20, 2);
+	sprintf(char_salida, "Used: %05u bytes", 65536 - MEM_getFree());
+	VDP_drawText(char_salida, 20, 3);*/
 }
 
 /**
@@ -82,10 +78,5 @@ void inputHandler(u16 joy, u16 state, u16 changed){
 	BUTTONS[7]=changed & BUTTON_C;
 
 	BUTTONS[8]=changed & BUTTON_START;
-	
-	BUTTONS[9]=changed & BUTTON_X;
-	BUTTONS[10]=changed & BUTTON_Y;
-	BUTTONS[11]=changed & BUTTON_Z;
-	BUTTONS[12]=changed & BUTTON_MODE;
 	
 }

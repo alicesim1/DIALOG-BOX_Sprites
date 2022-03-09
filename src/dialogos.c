@@ -10,8 +10,6 @@
   ASCI: 92 = \ (CUIDADO! escape seuence)  usar siempre: \\
 */
 
-#define topdialogo 128//0-127=X  128=\0
-
 //---------------------|XXXXXXXXXXXXXXXXXXXXXXXXX0|---------
 const char dialogo0[]={"El veloz murciélago hindú comía feliz cardillo y kiwi. La cigüeña tocaba el saxofón detrás del palenque de paja."};
 const char dialogo1[]={" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ "};
@@ -20,7 +18,7 @@ const char dialogo1[]={" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUV
 const char dialogo2[]={"¡¿ÁÉÍÑÓÚÜáéíñóúü"};//ASCII Extendido
 const char dialogo3[]={" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ¡¿ÁÉÍÑÓÚÜáéíñóúü"};
 //---------------------|XXXXXXXXXXXXXXXXXXXXXXXXX0|---------
-const char* dialogos[] = {dialogo0,dialogo1,dialogo2,dialogo3};
+const char *dialogos[] = {dialogo0,dialogo1,dialogo2,dialogo3};
 
 const u8 ascii_SP[]={129,159,161,169,173,177,179,186,188,193,201,205,209,211,218,220};
 /*Message : ¡
@@ -65,17 +63,58 @@ static u8 ASCII_EXT(u8 charasci){
 	return 96+i;
 }
 
-
-void dialogo(u16 x,u16 y,u8 ancho, u8 alto, u8 numdiag){
+/*
+numdiag=numero dialogo, 
+x,y - coordenadas pixel
+ancho,alto 1=32px,  
+coordenadas VRAM 0=Background, 1=>
+paleta:0,1,2,3
+*/
+void dialogo(u16 x,u16 y,u8 ancho, u8 alto, u16 diag_ind,u8 diag_pal){
 	KLog("----START DIALOG-BOX----");
+	
+	/*
+	------------------------------
+	calculo de consumo Tiles de VRAM:
+	barra esquinas= 1
+	barra horizontal= 4
+	barra vertical= 4
+	lienzo= (ancho*alto)*16
+
+	calculo de consumo Slots VDP Sprites:
+	barra esquinas= 4
+	barra horizontal= 2*ancho
+	barra vertical= 2*alto
+	lienzo= ancho*alto
+	*/
+
+	KLog_U2("ancho: ",ancho," X alto: ",alto);
+	
+	KLog_U1("VRAM Start pos: ",diag_ind);
+	KLog_U1("VRAM Tiles: ",9+(ancho*alto*16));
+	KLog_U1("VRAM Final pos: ",diag_ind+9+(ancho*alto*16));
+	
+	KLog_U1("SPRITES Slots: ",4+(ancho*2)+(alto*2)+(ancho*alto));
+	
+	u8 dig_long=strlen(dialog_txt);
+	KLog_U1("Caracteres: ",dig_long);	
+	KLog(dialog_txt);
+
+	char cadena_org[dig_long];//tipo cadena completa ""(se auto añade al final \0)
+	strcpy(cadena_org,dialog_txt);
+	
+	//PAL_setPalette(diag_pal,dig_marco1.palette->data,CPU);
+	PAL_setColors(diag_pal<<4,dig_marco1.palette->data,8,CPU);
+	//KLog_U1("diag_pal*16: ",diag_pal*16);
+	//KLog_U1("diag_pal<<: ",diag_pal<<4);
 	
 	u8 i;
 	//--------Marco Esquinas---------------------------------------------------------
 	Sprite* dig_marcoE[4];
-	dig_marcoE[0]=SPR_addSpriteEx(&dig_marco1,x,y,TILE_ATTR_FULL(2,TRUE,FALSE,FALSE,diag_ind),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
-	dig_marcoE[1]=SPR_addSpriteEx(&dig_marco1,x+8+(32*ancho),y,TILE_ATTR_FULL(2,TRUE,FALSE,TRUE,diag_ind),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
-	dig_marcoE[2]=SPR_addSpriteEx(&dig_marco1,x,y+8+(32*alto),TILE_ATTR_FULL(2,TRUE,TRUE,FALSE,diag_ind),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
-	dig_marcoE[3]=SPR_addSpriteEx(&dig_marco1,x+8+(32*ancho),y+8+(32*alto),TILE_ATTR_FULL(2,TRUE,TRUE,TRUE,diag_ind),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
+	dig_marcoE[0]=SPR_addSpriteEx(&dig_marco1,x,y,TILE_ATTR_FULL(diag_pal,TRUE,FALSE,FALSE,diag_ind),0,SPR_FLAG_AUTO_SPRITE_ALLOC | SPR_FLAG_AUTO_TILE_UPLOAD);
+	dig_marcoE[1]=SPR_addSpriteEx(&dig_marco1,x+8+(ancho<<5),y,TILE_ATTR_FULL(diag_pal,TRUE,FALSE,TRUE,diag_ind),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
+	dig_marcoE[2]=SPR_addSpriteEx(&dig_marco1,x,y+8+(alto<<5),TILE_ATTR_FULL(diag_pal,TRUE,TRUE,FALSE,diag_ind),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
+	dig_marcoE[3]=SPR_addSpriteEx(&dig_marco1,x+8+(ancho<<5),y+8+(alto<<5),TILE_ATTR_FULL(diag_pal,TRUE,TRUE,TRUE,diag_ind),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
 	for(i=0;i<4;i++) SPR_setDepth(dig_marcoE[i],SPR_MIN_DEPTH+2);//-32766
 	
 	
@@ -83,30 +122,41 @@ void dialogo(u16 x,u16 y,u8 ancho, u8 alto, u8 numdiag){
 	Sprite* dig_marcoH[ancho];//superior
 	Sprite* dig_marcoHd[ancho];//abajo
 	u16 x2;
-	u16 y2=y+8+(32*alto);
+	u16 y2=y+8+(alto<<5);
 	for(i=0;i<ancho;i++){
-		x2=x+8+(32*i);
-		dig_marcoH [i]=SPR_addSpriteEx(&dig_marco2,x2,y ,TILE_ATTR_FULL(2,TRUE,FALSE,FALSE,diag_ind+1),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
-		dig_marcoHd[i]=SPR_addSpriteEx(&dig_marco2,x2,y2,TILE_ATTR_FULL(2,TRUE,TRUE ,FALSE,diag_ind+1),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
+		x2=x+8+(i<<5);
+		if(i==0){
+			dig_marcoH [i]=SPR_addSpriteEx(&dig_marco2,x2,y ,TILE_ATTR_FULL(diag_pal,TRUE,FALSE,FALSE,diag_ind+1),0,SPR_FLAG_AUTO_SPRITE_ALLOC | SPR_FLAG_AUTO_TILE_UPLOAD);
+		} else {
+			dig_marcoH [i]=SPR_addSpriteEx(&dig_marco2,x2,y ,TILE_ATTR_FULL(diag_pal,TRUE,FALSE,FALSE,diag_ind+1),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
+		}
+		
+		dig_marcoHd[i]=SPR_addSpriteEx(&dig_marco2,x+8+((ancho-i-1)<<5),y2,TILE_ATTR_FULL(diag_pal,TRUE,TRUE ,FALSE,diag_ind+1),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
 		SPR_setDepth(dig_marcoH[i],SPR_MIN_DEPTH+2);//-32766	
 		SPR_setDepth(dig_marcoHd[i],SPR_MIN_DEPTH+2);//-32766
+		SPR_update();SYS_doVBlankProcess();
 	}
 	
 	//-------Marco verticales-----------------------
 	Sprite* dig_marcoV[alto];//izquierdaq
 	Sprite* dig_marcoVd[alto];//derecho
-	x2=x+8+(32*ancho);
+	x2=x+8+(ancho<<5);
 	for(i=0;i<alto;i++){
-		y2=y+8+(32*i);
-		dig_marcoV [i]=SPR_addSpriteEx(&dig_marco3,x ,y2,TILE_ATTR_FULL(2,TRUE,FALSE,FALSE,diag_ind+1+4),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
-		dig_marcoVd[i]=SPR_addSpriteEx(&dig_marco3,x2,y2,TILE_ATTR_FULL(2,TRUE,FALSE,TRUE ,diag_ind+1+4),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
+		if(i==0){
+			dig_marcoV [i]=SPR_addSpriteEx(&dig_marco3,x ,y+8+((alto-i-1)<<5),TILE_ATTR_FULL(diag_pal,TRUE,FALSE,FALSE,diag_ind+1+4),0,SPR_FLAG_AUTO_SPRITE_ALLOC | SPR_FLAG_AUTO_TILE_UPLOAD);
+		} else {
+			dig_marcoV [i]=SPR_addSpriteEx(&dig_marco3,x ,y+8+((alto-i-1)<<5),TILE_ATTR_FULL(diag_pal,TRUE,FALSE,FALSE,diag_ind+1+4),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
+		}
+		y2=y+8+(i<<5);
+		dig_marcoVd[i]=SPR_addSpriteEx(&dig_marco3,x2,y2,TILE_ATTR_FULL(diag_pal,TRUE,FALSE,TRUE ,diag_ind+1+4),0,SPR_FLAG_AUTO_SPRITE_ALLOC);
 		SPR_setDepth(dig_marcoV[i],SPR_MIN_DEPTH+2);//-32766
 		SPR_setDepth(dig_marcoVd[i],SPR_MIN_DEPTH+2);//-32766
+		SPR_update();SYS_doVBlankProcess();
 	}
-	SPR_update();SYS_doVBlankProcess();
+	
 	
 	//Lienzo 32x32---------------------------------------------------
-
+	
 	u16 Start_ind=diag_ind+1+4+4;
 	
 	u8 aa=ancho*alto;
@@ -116,22 +166,21 @@ void dialogo(u16 x,u16 y,u8 ancho, u8 alto, u8 numdiag){
 	u8 spritelienzo3232=0;
 	for(u8 v=0;v<alto;v++){
 		for(u8 h=0;h<ancho;h++){
-			dig_lienzo[spritelienzo3232]=SPR_addSpriteEx(&dig_marco4,x+8+(32*h),y+8+(32*v),TILE_ATTR_FULL(2,TRUE,FALSE,FALSE,Start_ind+(16*spritelienzo3232)),0,SPR_FLAG_AUTO_SPRITE_ALLOC | SPR_FLAG_AUTO_TILE_UPLOAD);		
-			if((spritelienzo3232&10)==10){ //necesario para no llenar el DMA
-				SPR_update();SYS_doVBlankProcess();
-			}
+			dig_lienzo[spritelienzo3232]=SPR_addSpriteEx(&dig_marco4,x+8+(h<<5),y+8+(v<<5),TILE_ATTR_FULL(diag_pal,TRUE,FALSE,FALSE,Start_ind+(spritelienzo3232<<4)),0,SPR_FLAG_AUTO_SPRITE_ALLOC | SPR_FLAG_AUTO_TILE_UPLOAD);		
+			
 			SPR_setDepth(dig_lienzo[spritelienzo3232],SPR_MIN_DEPTH+2);//-32766
 			spritelienzo3232++;
+			//if(( spritelienzo3232 & 10 )==10){ //necesario para no llenar el DMA
+				SPR_update();SYS_doVBlankProcess();
+			//}
 		}
 	}
 	
-	SPR_update();//SPR_FLAG_AUTO_TILE_UPLOAD FUNCIONE! Deve estar VISIBLE! Volvado automatico de tileset de los sprites a la VRAM
-	SYS_doVBlankProcess();
+	//SPR_update();SYS_doVBlankProcess();
 	
-	//Insertar Caracteres 8x16 en el lienzo VRAM
-	
+
 	//descomprimimos TilSet
-	TileSet *t = unpackTileSet(&font16, NULL);
+	//TileSet *t = unpackTileSet(&font16, NULL);
 	//KLog_U1("t->numTile: ",t->numTile);//numTile:384
 	
 	
@@ -145,43 +194,36 @@ void dialogo(u16 x,u16 y,u8 ancho, u8 alto, u8 numdiag){
 	u8 dig_fila=0;
 	bool subfila=FALSE;
 	
-	char cadena_org[topdialogo];//tipo cadena completa ""(se auto añade al final \0)
-	char cadena_temp[1];//[0] caracter, [1]=\0
 	
 	u16 c;//valor indice de Tileset de la tabla ASCII grafico! 8x16
-	u8 rc,ct;//valor caracter ASCII 0(32)=" "
+	u8 ct;//valor caracter ASCII 0(32)=" "
 	
-	/*for(rc=32;rc<256;rc++){
-		cadena_temp[0]=rc;cadena_temp[1]='\0';
-		KLog_U1(cadena_temp,rc);
-	}*/
-	
-	u8 dig_long=strlen(dialogos[numdiag]);
-	//VDP_drawInt(dig_long,0,35,ScreenY);
-	
-	strcpy(cadena_org,dialogos[numdiag]);//VDP_drawText(cadena_org,0,ScreenY);
-	
-	KLog(cadena_org);
+	char cadena_temp[1];//[0] caracter, [1]=\0
 	
 	u8 letra=0;//numero de posicion de caracteres de la frase
-	u8 vel_letra=6;
-	//KLog_U4("ancho:",ancho,"-tcancho:",tcancho,">ind:",Start_ind," -top_ind:",top_ind);
-	bool skip=FALSE;
+	u8 vel_letra=4;
 	
+	//KLog_U4("ancho:",ancho,"-tcancho:",tcancho,">ind:",Start_ind," -top_ind:",top_ind);
+	
+	bool skip=FALSE;
+	/*KLog_U1("Caracteres: ",strlen(cadena_org));	
+	KLog(cadena_org);
+	KLog_U1("Caracteres: ",strlen(dialog_txt));	
+	KLog(dialog_txt);
+	*/
 	do{
 		
-		cadena_temp[0]=cadena_org[letra];cadena_temp[1]='\0';// [0] = H > ASCII:72
+		cadena_temp[0]=cadena_org[letra];
+		cadena_temp[1]='\0';// [0] = H > ASCII:72
 		
 		//KLog(cadena_temp);
 		
-		rc=cadena_temp[0];//32-255
-		c=rc-32;//32>0 ASCII valor
+		ct=cadena_temp[0];//32-255
+		c=ct-32;//32>0 ASCII valor
 		
 		if(c>128){ c=ASCII_EXT(c); }
 		
-		
-		//KLog_U3("letra: ",letra," >ASCI: ",rc," >c: ",c);
-		
+		//KLog_U3("letra: ",letra," >ASCI: ",ct," >c: ",c);
 		
 		//KLog_U1(">ind:",ind);
 		if(c>0){//0=Espacio,1=!,2=...
@@ -192,12 +234,18 @@ void dialogo(u16 x,u16 y,u8 ancho, u8 alto, u8 numdiag){
 				c+=ct;
 				//KLog_U2("/16> ",ct," *16= ",c);
 			}
+			//Insertar Caracteres 8x16 en el lienzo VRAM
 			//Tails8521
 			//----No se puede comprimir----Dirección del búfer de origen., Dirección de destino VRAM / CRAM / VSRAM.
 			//DMA_queueDma(DMA_VRAM, (void *)yourtileset.tiles + yourtileindexinthetileset * 32, yourvramtileindex * 32, 16, 2);
-			DMA_queueDmaFast(DMA_VRAM,(void *)t->tiles+ c    *32,ind*32,16,2);ind++;//0>1    (2>3)
+			
+			DMA_queueDmaFast(DMA_VRAM,(void *)font16.tiles+ c    *32,ind<<5,16,2);ind++;//0>1    (2>3)
 			//ancho> 128/8= 16 tiles | situamos el origen segunda fila de tiles 8x8, parte inferior de chara 8x16
-			DMA_queueDmaFast(DMA_VRAM,(void *)t->tiles+(c+16)*32,ind*32,16,2);ind++;//1>2... (3>4...)
+			DMA_queueDmaFast(DMA_VRAM,(void *)font16.tiles+(c+16)*32,ind<<5,16,2);ind++;//1>2... (3>4...)
+			
+			//DMA_queueDmaFast(DMA_VRAM,(void *)t->tiles+ c    *32,ind<<5,16,2);ind++;//0>1    (2>3)
+			//ancho> 128/8= 16 tiles | situamos el origen segunda fila de tiles 8x8, parte inferior de chara 8x16
+			//DMA_queueDmaFast(DMA_VRAM,(void *)t->tiles+(c+16)*32,ind<<5,16,2);ind++;//1>2... (3>4...)
 			
 		}else ind+=2;
 		
@@ -224,50 +272,50 @@ void dialogo(u16 x,u16 y,u8 ancho, u8 alto, u8 numdiag){
 		
 		letra++;
 		
-		if(!skip){
-			if(vel_letra>0){
-				for(i=0;i<vel_letra;i++){
-					if(!gat){
-						if(BUTTONS[6]) { skip=TRUE; break;}//salimos del FOR
-					}
-					else if(!BUTTONS[6]) gat=FALSE;
-					
-					sprintf(char_salida, "Free: %05u bytes", MEM_getFree());
-					VDP_drawText(char_salida, 20, 2);
-					sprintf(char_salida, "Used: %05u bytes", 65536 - MEM_getFree());
-					VDP_drawText(char_salida, 20, 3);
-					
-					SYS_doVBlankProcess();
+		if(!skip && vel_letra>0 && c>0){
+			for(i=0;i<vel_letra;i++){
+				if(!gat){
+					if(BUTTONS[6]) { skip=TRUE; break;}//salimos del FOR
 				}
+				else if(!BUTTONS[6]) gat=FALSE;
+				
+				memfreettxt();
+				
+				SYS_doVBlankProcess();
 			}
 		}
+		
 		//JOY_waitPressTime(JOY_ALL,BUTTON_B,1000);
 	} while(dig_fila<alto && letra<dig_long);
 	
+	
 	//liberamos el TileSet de la fuente 8x16 ASCII de la RAM
-	MEM_free(t);
+	//MEM_free(t);
 	
 	
 	gat=TRUE;
 	
 	KLog("----ESPERA DIALOG-BOX----");
+	
+	memfreettxt();
+	
 	do{
 		
 		if(gat && !BUTTONS[6]) gat=FALSE;
 		
-		sprintf(char_salida, "Free: %05u bytes", MEM_getFree());
-		VDP_drawText(char_salida, 20, 2);
-		sprintf(char_salida, "Used: %05u bytes", 65536 - MEM_getFree());
-		VDP_drawText(char_salida, 20, 3);
-		
 		SYS_doVBlankProcess();
 	}while(!BUTTONS[6] || gat);	gat=TRUE;
 	
-	for(i=0;i<spritelienzo3232;i++)	SPR_releaseSprite(dig_lienzo[i]);
-	for(i=0;i<ancho;i++)SPR_releaseSprite(dig_marcoH[i]);
-	for(i=0;i<ancho;i++)SPR_releaseSprite(dig_marcoHd[i]);
-	for(i=0;i<alto;i++) SPR_releaseSprite(dig_marcoV[i]);
-	for(i=0;i<alto;i++) SPR_releaseSprite(dig_marcoVd[i]);
+
+	for(i=0;i<spritelienzo3232;i++){
+		SPR_releaseSprite(dig_lienzo[i]); SPR_update();SYS_doVBlankProcess();
+	}
+	for(i=0;i<alto;i++){
+		SPR_releaseSprite(dig_marcoV[i]);SPR_releaseSprite(dig_marcoVd[i]);SPR_update();SYS_doVBlankProcess();
+		}
+	for(i=0;i<ancho;i++){
+		SPR_releaseSprite(dig_marcoH[i]);SPR_releaseSprite(dig_marcoHd[i]);SPR_update();SYS_doVBlankProcess();
+	}
 	for(i=0;i<4;i++)	SPR_releaseSprite(dig_marcoE[i]);
 	
 	SPR_update();

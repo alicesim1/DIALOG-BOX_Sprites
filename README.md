@@ -2,21 +2,21 @@
 
 Plataforma: **SEGA Mega Drive/Genesis**
 
-**Sistema de cuadros de dialogos! Por sistema de SPRITES 100% Version Española V.1.0**
+**Sistema de cuadros de dialogos! Por sistema de SPRITES 100% Version Española V.1.1**
 
-![Dialogo](https://raw.githubusercontent.com/alicesim1/DIALOG-BOX_Sprites/master/temp/4X6-48_SLOTS-SPRITES.PNG)
+![Dialogo](https://raw.githubusercontent.com/alicesim1/DIALOG-BOX_Sprites/master/temp/Captura.PNG)
 
 ## Botones: ##
 
-**A = Test dialogo ASCII**
+**A = Test dialogo "Hola mundo" 8x1**
 
-**B = Test dialogo Pangrama**
+**B = Test dialogo Pangrama 8x2**
 
 https://es.wikipedia.org/wiki/Pangrama
 
-**C = Test dialogo Caracteres extendidos Español**
+**C = Test dialogo ASCII 4x6**
 
-**START = Test dialogo ASCII + Extendidos Español**
+**START = Test dialogo ASCII + Extendidos Español 4x6**
 
 
 **B = Cerrar dialogo

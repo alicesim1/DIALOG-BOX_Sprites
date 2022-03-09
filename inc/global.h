@@ -7,10 +7,14 @@
 
 u16 BUTTONS[12];
 bool gat;//GATILLO GLOBAL!
-
 char char_salida[8];
 
-#define diag_ind 200 //VRAM hex:4B0
-void dialogo(u16,u16,u8,u8,u8);
+char dialog_txt[128];
 
+void memfreettxt();
+
+extern const char *dialogos[];
+
+
+void dialogo(u16 x,u16 y,u8 ancho, u8 alto, u16 diag_ind,u8 diag_pal);
 #endif
